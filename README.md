@@ -10,3 +10,5 @@ pip install --editable ./
 # Download the models
 1. English Language Model: https://dl.fbaipublicfiles.com/fairseq/models/lm/adaptive_lm_gbw_huge.tar.bz2
 2. German Language Model: https://dl.fbaipublicfiles.com/fairseq/models/lm/wmt19.de.tar.gz
+
+# Extract the models to the top level directory of this repo and just run the notebook file
