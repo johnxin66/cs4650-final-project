@@ -92,6 +92,17 @@ def main(cfg: FairseqConfig) -> None:
     # johnxin changed to custom model
     model = task.build_model(cfg.model)
 
+    from fairseq.models.transformer_lm import TransformerLanguageModel
+    import os
+    EN_LM_MODEL_PATH = os.path.join(os.getcwd(), "wmt19.en")
+    DE_LM_MODEL_PATH = os.path.join(os.getcwd(), "wmt19.de")
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logger.info("loading decoder from language models...")
+    en_lm = TransformerLanguageModel.from_pretrained(EN_LM_MODEL_PATH, 'model.pt', tokenizer='moses', bpe='fastbpe').cuda()
+    en_decoder = en_lm.models[0].decoder
+    model.decoder = en_decoder
+    logger.info("Swapped decoder from language model")
+
     criterion = task.build_criterion(cfg.criterion)
     logger.info(model)
     logger.info("task: {}".format(task.__class__.__name__))
