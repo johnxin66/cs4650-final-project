@@ -3,6 +3,7 @@
 # Installations
 ```bash
 conda env create -f environment.yml
+git clone https://github.com/pytorch/fairseq
 cd fairseq
 pip install --editable ./
 ```
