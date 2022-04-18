@@ -8,6 +8,7 @@ Train a new model on one or across multiple GPUs.
 """
 
 import argparse
+import json
 import logging
 import math
 import os
@@ -101,6 +102,10 @@ def main(cfg: FairseqConfig) -> None:
     en_lm = TransformerLanguageModel.from_pretrained(EN_LM_MODEL_PATH, 'model.pt', tokenizer='moses', bpe='fastbpe').cuda()
     en_decoder = en_lm.models[0].decoder
     model.decoder = en_decoder
+    gen_args = json.loads(task.cfg.eval_bleu_args)
+    task.sequence_generator = task.build_generator(
+                [model], argparse.Namespace(**gen_args)
+            )
     logger.info("Swapped decoder from language model")
 
     criterion = task.build_criterion(cfg.criterion)
