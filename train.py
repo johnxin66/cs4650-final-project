@@ -14,6 +14,7 @@ import math
 import os
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from fairseq.modules import LayerNorm
 
 # We need to setup root logger before importing any fairseq libraries.
 logging.basicConfig(
@@ -26,7 +27,7 @@ logger = logging.getLogger("fairseq_cli.train")
 
 import numpy as np
 import torch
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, open_dict
 
 from fairseq import checkpoint_utils, options, quantization_utils, tasks, utils
 from fairseq.data import data_utils, iterators
@@ -98,8 +99,21 @@ def main(cfg: FairseqConfig) -> None:
     EN_LM_MODEL_PATH = os.path.join(os.getcwd(), "wmt19.en")
     DE_LM_MODEL_PATH = os.path.join(os.getcwd(), "wmt19.de")
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print("cfg")
+    print(cfg)
     logger.info("loading decoder from language models...")
     en_lm = TransformerLanguageModel.from_pretrained(EN_LM_MODEL_PATH, 'model.pt', tokenizer='moses', bpe='fastbpe').cuda()
+    print("en_lm.decoder.layers")
+    print(en_lm.models[0].decoder.layers)
+    for layer in en_lm.models[0].decoder.layers:
+        layer.encoder_attn = layer.build_encoder_attention(layer.embed_dim, cfg)
+        layer.encoder_attn_layer_norm = LayerNorm(layer.embed_dim, export=cfg.export)
+    # en_lm.decoder.layers.extend(
+    #         [
+    #             en_lm.decoder.build_decoder_layer(cfg, False)
+    #             for _ in range(cfg.decoder.layers)
+    #         ]
+    #     )
     en_decoder = en_lm.models[0].decoder
     model.decoder = en_decoder
     gen_args = json.loads(task.cfg.eval_bleu_args)
@@ -341,6 +355,7 @@ def train(
                 metrics.reset_meters("train_inner")
 
         end_of_epoch = not itr.has_next()
+        torch.cuda.empty_cache()
         valid_losses, should_stop = validate_and_save(
             cfg, trainer, task, epoch_itr, valid_subsets, end_of_epoch
         )
