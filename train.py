@@ -103,9 +103,11 @@ def main(cfg: FairseqConfig) -> None:
     print(cfg)
     logger.info("loading decoder from language models...")
     en_lm = TransformerLanguageModel.from_pretrained(EN_LM_MODEL_PATH, 'model.pt', tokenizer='moses', bpe='fastbpe').cuda()
-    print("en_lm.decoder.layers")
-    print(en_lm.models[0].decoder.layers)
-    for layer in en_lm.models[0].decoder.layers:
+    en_decoder = en_lm.models[0].decoder
+    en_decoder.layers = en_decoder.layers[:6]
+    # en_decoder.project_in_dim = None
+    # en_decoder.project_out_dim = None
+    for layer in en_decoder.layers:
         layer.encoder_attn = layer.build_encoder_attention(layer.embed_dim, cfg)
         layer.encoder_attn_layer_norm = LayerNorm(layer.embed_dim, export=cfg.export)
     # en_lm.decoder.layers.extend(
@@ -114,7 +116,6 @@ def main(cfg: FairseqConfig) -> None:
     #             for _ in range(cfg.decoder.layers)
     #         ]
     #     )
-    en_decoder = en_lm.models[0].decoder
     model.decoder = en_decoder
     gen_args = json.loads(task.cfg.eval_bleu_args)
     task.sequence_generator = task.build_generator(
